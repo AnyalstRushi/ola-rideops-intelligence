@@ -1,0 +1,5 @@
+Date,Time,Booking_ID,Booking_Status,Customer_ID,Vehicle_Type,Pickup_Location,Drop_Location,Booking_Value,Payment_Method,Ride_Distance,Driver_Ratings,Customer_Rating
+2024-07-08,20:53:00,CNR4323090320,Success,CID847720,Mini,Devanahalli,Padmanabhanagar,111,Cash,54,4.0,4.0
+2024-07-24,17:54:00,CNR8912695211,Success,CID746692,Bike,Bellandur,Cox Town,256,Cash,12,3.3,3.5
+2024-07-01,10:11:00,CNR3724336759,Canceled by Driver,CID752484,Prime Plus,HSR Layout,KR Puram,,,,,
+2024-07-30,16:21:00,CNR6868734464,Canceled by Customer,CID526265,Prime Plus,Malleshwaram,Malleshwaram,,,,,
