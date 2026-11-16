@@ -54,11 +54,16 @@ jobs:
           render=next(s['run'] for s in steps if s.get('name')=='Render and inspect three GIF previews')
           subprocess.run(['bash','-e','-c',render],check=True)
           PY
-      - name: Commit themed assets and previews
+      - name: Commit only visual assets and README
         run: |
+          git restore .github/workflows/readme-gifs.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add showcase/index.html assets/rideops-hero.svg .github/workflows/readme-gifs.yml assets/rideops-hero.gif assets/rideops-architecture.gif assets/rideops-output.gif README.md
+          git add showcase/index.html assets/rideops-hero.svg assets/rideops-hero.gif assets/rideops-architecture.gif assets/rideops-output.gif README.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then
+            echo 'Refusing to push workflow changes from the asset generator'
+            exit 1
+          fi
           if ! git diff --cached --quiet; then
             git commit -m 'design: apply coral cyan and gold Midnight Signal identity'
             git push origin HEAD:main
