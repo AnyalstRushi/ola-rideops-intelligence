@@ -1,0 +1,99 @@
+name: Build README GIF previews
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/readme-gifs.yml', 'metrics.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: readme-gifs
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install Pillow==11.3.0
+      - name: Render and inspect three GIF previews
+        run: |
+          python - <<'PY'
+          import json, math, re
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont
+          m=json.loads(Path('metrics.json').read_text())
+          assert m['rows']>0 and m['daily'] and m['status']
+          out=Path('assets');out.mkdir(exist_ok=True)
+          bg='#101813';lime='#d5fa67';ink='#f0f1df';muted='#afbaa9';line='#344236'
+          def font(n):
+              return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',n)
+          def text(d,xy,s,n=20,color=ink):d.text(xy,str(s),font=font(n),fill=color)
+          def save(name,frames):
+              p=out/name
+              frames[0].save(p,save_all=True,append_images=frames[1:],duration=100,loop=0,optimize=True,disposal=2)
+              with Image.open(p) as im:assert im.n_frames>1 and im.size==(1000,420)
+              assert p.stat().st_size<10_000_000
+          for mode,name in [('hero','rideops-hero.gif'),('architecture','rideops-architecture.gif'),('output','rideops-output.gif')]:
+              frames=[]
+              for i in range(60):
+                  im=Image.new('RGB',(1000,420),bg);d=ImageDraw.Draw(im)
+                  text(d,(35,20),'RIDEOPS / INTELLIGENCE',16,lime)
+                  if mode=='hero':
+                      text(d,(35,65),'Every ride.',56);text(d,(35,132),'Every gap.',56);text(d,(35,199),'In focus.',56,lime)
+                      for x in range(590,980,40):d.line((x,60,x,330),fill=line)
+                      for y in range(60,350,40):d.line((590,y,980,y),fill=line)
+                      paths=[[(600,310),(770,310),(770,95),(960,95)],[(620,90),(700,90),(700,230),(950,230)]]
+                      for k,pts in enumerate(paths):
+                          d.line(pts,fill=line,width=3)
+                          t=((i/60+k*.4)%1)*(len(pts)-1);a=min(int(t),len(pts)-2);u=t-a
+                          x=pts[a][0]*(1-u)+pts[a+1][0]*u;y=pts[a][1]*(1-u)+pts[a+1][1]*u
+                          d.ellipse((x-7,y-7,x+7,y+7),fill=lime)
+                      text(d,(35,298),'Booking records -> operational questions',20,muted)
+                      text(d,(35,340),'Independent portfolio | Synthetic educational data',17,muted)
+                      text(d,(590,350),'ILLUSTRATIVE NETWORK / NOT GPS',12,lime)
+                  elif mode=='architecture':
+                      text(d,(35,65),'From records to review.',40)
+                      labels=[('SYNTHETIC','Booking records'),('SNAPSHOT','metrics.json'),('BROWSER','Charts + replay'),('REVIEW','Human judgment')]
+                      for j,(a,b) in enumerate(labels):
+                          x=35+j*240;active=int(i/15)==j
+                          d.rounded_rectangle((x,165,x+210,285),radius=9,outline=lime if active else line,width=3)
+                          text(d,(x+15,183),a,15,lime);text(d,(x+15,225),b,18)
+                          if j<3:
+                              d.line((x+213,225,x+235,225),fill=line,width=3)
+                              px=x+213+(i%15)/14*22;d.ellipse((px-3,222,px+3,228),fill=lime)
+                      text(d,(35,325),'Showcase rendering path, not proof of full pipeline execution.',18,muted)
+                  else:
+                      idx=i//2%len(m['daily']);day,n,rate=m['daily'][idx]
+                      text(d,(35,65),'The operational picture.',40)
+                      text(d,(35,127),f"{m['rows']:,} bookings | Existing exported snapshot",19,muted)
+                      mx=max(s[1] for s in m['status'])
+                      for j,s in enumerate(m['status']):
+                          y=175+j*43;text(d,(35,y),s[0],16)
+                          d.rectangle((260,y+4,630,y+23),fill=line)
+                          d.rectangle((260,y+4,260+int(370*s[1]/mx),y+23),fill=lime)
+                          text(d,(645,y),f'{s[1]:,}',17)
+                      text(d,(770,175),f'JULY {int(day):02}',22,lime)
+                      text(d,(770,220),f'{int(n):,}',36)
+                      text(d,(770,265),'bookings / day',15,muted)
+                      text(d,(770,300),f'{rate:.1%} success',19,lime)
+                  text(d,(35,388),'ANIMATED PREVIEW | NOT LIVE TELEMETRY | NOT AFFILIATED WITH OLA',12,muted)
+                  frames.append(im)
+              save(name,frames)
+          p=Path('README.md');s=p.read_text()
+          s=re.sub(r'<!-- RIDEOPS_GIFS_START -->.*?<!-- RIDEOPS_GIFS_END -->\s*','',s,flags=re.S)
+          s=s.replace('![RideOps Intelligence](assets/rideops-hero.svg)\n','',1).lstrip()
+          block='<!-- RIDEOPS_GIFS_START -->\n![RideOps animated hero](assets/rideops-hero.gif)\n\n## Architecture in motion\n![Illustrative snapshot architecture](assets/rideops-architecture.gif)\n\n## Output preview\n![Animated replay of repository metrics](assets/rideops-output.gif)\n\nSynthetic educational data. Recorded snapshot animation, not a live service.\n\n[Open interactive Control Room](https://AnyalstRushi.github.io/ola-rideops-intelligence/showcase/) — requires successful Pages deployment.\n\n<!-- RIDEOPS_GIFS_END -->\n\n'
+          p.write_text(block+s)
+          PY
+      - name: Commit generated previews and README links
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/rideops-hero.gif assets/rideops-architecture.gif assets/rideops-output.gif README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: embed generated hero architecture and output GIF previews'
+            git push origin HEAD:main
+          fi
