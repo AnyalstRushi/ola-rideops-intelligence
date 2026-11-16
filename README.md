@@ -1,4 +1,17 @@
-![RideOps Intelligence](assets/rideops-hero.svg)
+<!-- RIDEOPS_GIFS_START -->
+![RideOps animated hero](assets/rideops-hero.gif)
+
+## Architecture in motion
+![Illustrative snapshot architecture](assets/rideops-architecture.gif)
+
+## Output preview
+![Animated replay of repository metrics](assets/rideops-output.gif)
+
+Synthetic educational data. Recorded snapshot animation, not a live service.
+
+[Open interactive Control Room](https://AnyalstRushi.github.io/ola-rideops-intelligence/showcase/) — requires successful Pages deployment.
+
+<!-- RIDEOPS_GIFS_END -->
 
 # Ola RideOps Intelligence Platform
 
