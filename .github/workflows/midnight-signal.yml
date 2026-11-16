@@ -1,0 +1,65 @@
+name: Apply Midnight Signal visual theme
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/midnight-signal.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: readme-gifs
+  cancel-in-progress: false
+jobs:
+  theme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install Pillow==11.3.0 PyYAML==6.0.2
+      - name: Recolor assets and regenerate native previews
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, yaml
+          colors={'#101813':'#090B16','#d5fa67':'#FF705B','#f0f1df':'#F5F1E8','#afbaa9':'#AEB9CE','#344236':'#30374F','#18251c':'#12182A','#304134':'#26304B','#253227':'#202940','#586b42':'#705166','#71835e':'#7288A8','#25372a':'#1B233A','#61764d':'#5D7699'}
+          for name in ['showcase/index.html','assets/rideops-hero.svg','.github/workflows/readme-gifs.yml']:
+              p=Path(name)
+              s=p.read_text()
+              for old,new in colors.items():s=s.replace(old,new)
+              if name.endswith('readme-gifs.yml') and "lime={'hero'" not in s:
+                  old="              frames=[]\n"
+                  assert old in s, 'GIF generator layout changed; review before editing'
+                  s=s.replace(old,"              lime={'hero':'#FF705B','architecture':'#66E3FF','output':'#FFD080'}[mode]\n"+old,1)
+              if name=='showcase/index.html' and 'MIDNIGHT_SIGNAL_THEME' not in s:
+                  css='''<style>/* MIDNIGHT_SIGNAL_THEME */
+          body{background:radial-gradient(ellipse at 85% 0%,#24203D 0,transparent 42%),#090B16}
+          .scene{background:linear-gradient(145deg,#171C32,#0D1220);border-color:#3C4665}
+          .route.hot{stroke:#FF705B}.scene svg circle{fill:#66E3FF}
+          .metric{background:#0D1220}.metric strong{color:#F5F1E8}
+          .metric:nth-child(2) strong{color:#66E3FF}.metric:nth-child(3) strong{color:#FFD080}
+          .fill{background:linear-gradient(90deg,#FF705B,#FFB08A)}
+          .day.active{background:#FFD080}.day:hover{background:#66E3FF}
+          .node{background:linear-gradient(160deg,#171E33,#0D1220);border-top:3px solid #66E3FF}
+          .node small{color:#66E3FF}.panel{background:#12182A}
+          button,a.button{background:#FF705B;color:#090B16}
+          button:hover,a.button:hover{background:#FFB08A}
+          @media print{body,.metric,.panel,.node{background:white!important}.metric strong,.node small{color:black!important}}
+          </style>'''
+                  s=s.replace('</style>', '</style>\n'+css,1)
+              p.write_text(s)
+          workflow=yaml.safe_load(Path('.github/workflows/readme-gifs.yml').read_text())
+          steps=workflow['jobs']['render']['steps']
+          render=next(s['run'] for s in steps if s.get('name')=='Render and inspect three GIF previews')
+          subprocess.run(['bash','-e','-c',render],check=True)
+          PY
+      - name: Commit themed assets and previews
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add showcase/index.html assets/rideops-hero.svg .github/workflows/readme-gifs.yml assets/rideops-hero.gif assets/rideops-architecture.gif assets/rideops-output.gif README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'design: apply coral cyan and gold Midnight Signal identity'
+            git push origin HEAD:main
+          fi
