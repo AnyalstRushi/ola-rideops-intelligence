@@ -30,8 +30,10 @@ def normalize_status(value):
 
 
 def _to_snake_case(name):
-    name = re.sub(r"(?<!^)(?=[A-Z])", "_", str(name))
-    return re.sub(r"_+", "_", name.replace(" ", "_")).strip("_").lower()
+    name = str(name).strip()
+    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
+    return re.sub(r"_+", "_", re.sub(r"\s+", "_", name)).strip("_").lower()
 
 
 def clean_bookings(df):
